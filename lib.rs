@@ -1,3 +1,6 @@
+#![feature(rust_2018_preview, use_extern_macros)]
+#![warn(rust_2018_idioms)]
+
 // {{{ Crate docs
 //! # Async drain for slog-rs
 //!
@@ -48,12 +51,7 @@
 // {{{ Imports & meta
 #![warn(missing_docs)]
 
-#[macro_use]
-extern crate slog;
-extern crate thread_local;
-extern crate take_mut;
-
-use slog::{Record, RecordStatic, Level, SingleKV, KV, BorrowedKV};
+use slog::{Record, RecordStatic, Level, SingleKV, KV, BorrowedKV, record, o, b, kv};
 use slog::{Serializer, OwnedKVList, Key};
 
 use slog::Drain;
@@ -70,7 +68,7 @@ use take_mut::take;
 
 // {{{ Serializer
 struct ToSendSerializer {
-    kv: Box<KV + Send>,
+    kv: Box<dyn KV + Send>,
 }
 
 impl ToSendSerializer {
@@ -78,7 +76,7 @@ impl ToSendSerializer {
         ToSendSerializer { kv: Box::new(()) }
     }
 
-    fn finish(self) -> Box<KV + Send> {
+    fn finish(self) -> Box<dyn KV + Send> {
         self.kv
     }
 }
@@ -181,7 +179,7 @@ pub enum AsyncError {
     /// Could not send record to worker thread due to full queue
     Full,
     /// Fatal problem - mutex or channel poisoning issue
-    Fatal(Box<std::error::Error>),
+    Fatal(Box<dyn std::error::Error>),
 }
 
 impl<T> From<mpsc::TrySendError<T>> for AsyncError {
@@ -368,7 +366,7 @@ pub struct AsyncGuard {
 
 impl Drop for AsyncGuard {
     fn drop(&mut self) {
-        let _err: Result<(), Box<std::error::Error>> = {
+        let _err: Result<(), Box<dyn std::error::Error>> = {
             || {
                 let _ = self.tx.send(AsyncMsg::Finish);
                 self.join.take().unwrap().join().map_err(|_| {
@@ -476,7 +474,7 @@ struct AsyncRecord {
     location: Box<slog::RecordLocation>,
     tag: String,
     logger_values: OwnedKVList,
-    kv: Box<KV + Send>,
+    kv: Box<dyn KV + Send>,
 }
 
 enum AsyncMsg {
@@ -486,7 +484,7 @@ enum AsyncMsg {
 
 impl Drop for AsyncCore {
     fn drop(&mut self) {
-        let _err: Result<(), Box<std::error::Error>> = {
+        let _err: Result<(), Box<dyn std::error::Error>> = {
             || {
                 if let Some(join) = self.join.lock()?.take() {
                     let _ = self.get_sender()?.send(AsyncMsg::Finish);

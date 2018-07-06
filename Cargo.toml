@@ -1,3 +1,5 @@
+cargo-features = ["edition"]
+
 [package]
 name = "slog-async"
 version = "2.3.0"
@@ -10,6 +12,7 @@ documentation = "https://docs.rs/slog-async"
 homepage = "https://github.com/slog-rs/slog"
 repository = "https://github.com/slog-rs/async"
 readme = "README.md"
+edition = "2018"
 
 [features]
 nested-values = ["slog/nested-values"]
@@ -26,3 +29,6 @@ take_mut = "0.2.0"
 
 [package.metadata.docs.rs]
 features = ["nested-values", "dynamic-keys"]
+
+[patch.crates-io]
+slog = { git = "https://github.com/jechase/slog", branch = "2018_edition" }
